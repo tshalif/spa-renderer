@@ -1,0 +1,52 @@
+#file: noinspection SpellCheckingInspection
+######### CWJ params ################
+##### Shopify ###########
+
+ready_conditions:
+  - ['body', ['[data-ready="true"]'], 'attached']
+  - ['body', ['[data-test="loading-image"]'], 'detached']
+
+remove_elements:
+  - '[data-name="cookie-privacy-notice"]'
+  - '[data-test="loading-image"]'
+
+screen: 1280x1024
+
+screen_presets:
+  mobile: 411x731
+  nexus5: 412x732
+  desktop: 1200x1024
+  iphone: 390x850
+
+user_agent_screen_mapping:
+  -
+    - iphone
+    - iphone
+  -
+    - nexus
+    - nexus5
+  -
+    - iphone
+    - iphone
+  -
+    - mobile
+    - mobile
+
+default_timeout: 20000
+
+user_agent: ''
+user_agent_append: ChefworksPrerender
+device: ''
+debug: no
+add_base_url: yes
+warm_page_reload: yes
+max_tries: 2
+default_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3"
+
+#### DO S3 storage
+store_pages: no
+s3_endpoint: ''
+s3_bucket_name: ''
+s3_access_key: ''
+s3_secret_key: ''
+

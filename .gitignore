@@ -1,0 +1,8 @@
+.fxpipe.html
+__pycache__
+/.env.local*
+*.tmp
+*.old
+*~
+/.idea
+/tmp
