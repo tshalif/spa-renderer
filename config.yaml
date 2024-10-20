@@ -1,6 +1,8 @@
-#file: noinspection SpellCheckingInspection
-######### CWJ params ################
-##### Shopify ###########
+version: '1.0.1'
+extra_http_headers:
+  x-spa-renderer: '${version}'
+
+request_wait_url_pattern: ''
 
 ready_conditions:
   - ['body', ['[data-ready="true"]'], 'attached']
@@ -33,13 +35,13 @@ user_agent_screen_mapping:
     - mobile
 
 default_timeout: 20000
-
+network_idle_time: 5000
 user_agent: ''
 user_agent_append: ChefworksPrerender
 device: ''
 debug: no
 add_base_url: yes
-warm_page_reload: yes
+preload_pages: yes
 max_tries: 2
 default_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3"
 

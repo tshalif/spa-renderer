@@ -2,9 +2,11 @@ import base64
 import json
 import os
 import sys
-from typing import Optional
+import re
+from typing import Optional, Union
 
 import yaml
+from certifi import where
 
 from ..get_logger import get_logger
 
@@ -17,7 +19,7 @@ except ImportError:
 
 
 DEFAULT_NOT_PROVIDED = object()
-
+GET_MAX_DEPTH = 10
 
 logger = get_logger(__name__)
 
@@ -51,7 +53,12 @@ class Config:
         logger.info('config: %s' % self.config)
         pass
 
-    def get(self, key, def_val=DEFAULT_NOT_PROVIDED):
+    def get(self, key, def_val=DEFAULT_NOT_PROVIDED, depth=0):
+        if depth == GET_MAX_DEPTH:
+            raise RecursionError(
+                f'Recursion depth limit of {depth} reached for config variable "{key}"'
+            )
+
         suffix = self.config.get('conf_suffix', '')
         key_suffix = ('_%s' % suffix) if suffix else ''
         key_plus_suffix = '%s%s' % (key, key_suffix)
@@ -64,7 +71,10 @@ class Config:
         if retval == DEFAULT_NOT_PROVIDED:
             raise KeyError(f"missing config variable '{key}'")
 
-        return retval
+        return self._subst_vars(
+            retval,
+            depth
+        )
 
     @classmethod
     def _get_override_envvar(cls, key: str, test_id_parts: [str]) -> Optional[str]:  # noqa: E501
@@ -144,3 +154,23 @@ class Config:
         return s
 
     pass
+
+    def _subst_vars(self, retval: Union[int, str, dict, list, float, bool, None], depth: int):
+        t = type(retval)
+        def subst_vars(m):
+            return self.get(m.group(1), DEFAULT_NOT_PROVIDED, depth + 1)
+
+        if t == str:
+            retval = re.sub(
+                r'\${([a-zA-Z0-9_]+)}',
+                subst_vars,
+                retval
+            )
+        if t == list:
+            retval = [self._subst_vars(i, depth) for i in retval]
+        if t == dict:
+            keys = list(retval.keys())
+            for k in keys:
+                retval[k] = self._subst_vars(retval[k], depth)
+        return retval
+pass

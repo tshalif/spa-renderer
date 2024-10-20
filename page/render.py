@@ -1,6 +1,10 @@
-from typing import Callable, List, Literal, Tuple, Union
+import re
+from time import sleep
+from typing import Callable, List, Literal, Tuple, Union, Dict
+from urllib.parse import urlparse
 
-from playwright.sync_api import Page, Playwright, TimeoutError, sync_playwright
+from playwright.sync_api import Page, Playwright, TimeoutError, sync_playwright, Request, Response, BrowserContext
+from pylint.checkers.utils import returns_bool
 
 from util import config
 from util.get_logger import get_logger
@@ -17,6 +21,111 @@ type ReadyCondition = Tuple[
 
 logger = get_logger(__name__)
 
+
+class PageLoader:
+    requests: List[str] = []
+
+    def __init__(self, page: Page, url: str):
+        self.page = page
+        self.url = url
+        self.pending_requests = 0
+        base_url_pattern = re.escape(_base_url(url))
+        self.request_wait_url_pattern = (
+                config.get('request_wait_url_pattern') or r'^@BASE_URL@(/|\?|#$)'
+        ).replace('@BASE_URL@', base_url_pattern)
+
+        self._attach_handlers(True)
+
+        pass
+
+    def _attach_handlers(self, attach: bool):
+        if attach:
+            fun = self.page.on
+        else:
+            fun = self.page.remove_listener
+            pass
+
+        event_map = [
+            'request',
+            'requestfinished',
+            'requestfailed'
+        ]
+
+        for i in event_map:
+            if i == 'request':
+                handler = self._handle_request
+            else:
+                handler = self._handle_response
+                pass
+            fun(i, handler)
+            pass
+        pass
+
+    def  _handle_request(self, request: Request):
+        self._request_handler(request, 1)
+        pass
+
+    def  _handle_response(self, request: Request):
+        self._request_handler(request, -1)
+        pass
+
+    def _request_handler(self, request: Request, incr: int):
+        if re.match(r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css|js)$', request.url):
+            return
+
+        if request.method.lower() not in ['post', 'get', 'put']:
+            return
+
+        # logger.debug(
+        #     'render: _request_handler: %d: %s',
+        #     incr,
+        #     request.url
+        # )
+
+        if re.match(self.request_wait_url_pattern, request.url):
+            self.pending_requests += incr
+            match incr:
+                case 1:
+                    self.requests.append(request.url)
+                case -1:
+                    self.requests.remove(request.url)
+
+            logger.debug(
+                'render: request_handler: %s %s (pending=%d) %s',
+                request.url,
+                '>>' if incr == 1 else '<<',
+                self.pending_requests,
+                self.requests
+            )
+
+    def load(self) -> Page:
+        self.page.goto(self.url)
+        self._wait_network_idle()
+        self._attach_handlers(False)
+        return self.page
+
+    def _sleep(self, ms: int):
+        self.page.wait_for_timeout(ms)
+        pass
+
+    def _wait_network_idle(self):
+        network_idle_time = config.get('network_idle_time')
+        quiet_time = 0
+        while self.pending_requests > 0 or quiet_time < network_idle_time:
+            logger.debug(
+                'wait_network_idle: %d/%d: %s',
+                quiet_time,
+                network_idle_time,
+                self.requests
+            )
+            self._sleep(1000)
+            if self.pending_requests > 0:
+                quiet_time = 0
+            else:
+                quiet_time += 1000
+            pass
+        logger.debug('wait_network_idle: %d/%d', quiet_time, network_idle_time)
+    pass
 
 def _wait_conditions(page: Page, ready_conditions: List[ReadyCondition]):
     remaining_conditions: List[Tuple[str, List[str]]] = []
@@ -99,6 +208,10 @@ def _resolve_device_conf(
         user_agent = config.get('user_agent') or None
         pass
 
+    if not user_agent_append:
+        user_agent_append = config.get('user_agent_append') or None
+        pass
+
     device = _resolve_device(devices, device, user_agent)
 
     if device:
@@ -127,6 +240,11 @@ def _resolve_device_conf(
     return device, conf
 
 
+def _base_url(url):
+    parsed_url = urlparse(url)
+    return parsed_url.scheme + '://' + parsed_url.hostname
+
+
 def _render_internal(
         playwright: Playwright,
         url: str,
@@ -138,12 +256,18 @@ def _render_internal(
         debug: bool = None,
         user_agent: str = None,
         user_agent_append: str = None,
-        device: str = None
+        device: str = None,
+        extra_headers: Dict[str, str] = None
 ) -> Tuple[str, str]:
     chromium = playwright.chromium  # or "firefox" or "webkit".
 
     if debug is None:
         debug = config.get('debug')
+        pass
+
+    if extra_headers is None:
+        extra_headers = config.get('extra_http_headers') or {}
+        pass
 
     browser = chromium.launch(headless=(not debug))
 
@@ -162,23 +286,27 @@ def _render_internal(
             device_conf
         )
 
-        context = browser.new_context(**device_conf, ignore_https_errors=True)
+        context = browser.new_context(
+            **device_conf,
+            ignore_https_errors=True,
+            extra_http_headers=extra_headers,
+        )
 
-        page = context.new_page()
-
-        page.set_default_timeout(config.get('default_timeout'))
-
-        page.goto(url)
-
-        if config.get('warm_page_reload'):
-            logger.debug('render: page warmup reload')
-            page.reload()
+        if config.get('preload_pages'):
+            page = context.new_page()
+            page.goto(url)
+            page.close()
             pass
+
+        page: Union[Page, None] = None
 
         max_tries = config.get('max_tries')
         for i in range(max_tries):
             try:
+                page_loader = PageLoader(context.new_page(), url)
+                page = page_loader.load()
                 _wait_ready(page, ready_conditions)
+                break
             except TimeoutError as e:
                 if i < max_tries - 1:
                     logger.debug(
@@ -186,10 +314,11 @@ def _render_internal(
                         i + 1,
                         max_tries - 1
                     )
-                    page.reload()
                     continue
                 raise e
             pass
+
+        assert page is not None
 
         page.evaluate(
             "document.querySelectorAll('script').forEach(s => s.remove())"
@@ -197,6 +326,7 @@ def _render_internal(
 
         if remove_elements:
             for selector in remove_elements:
+                logger.debug('render: removing elements: %s', selector)
                 page.evaluate(
                     f"document.querySelectorAll('{selector}').forEach(s => s.remove())"  # noqa: E501
                 )
@@ -235,18 +365,18 @@ def _wait_ready(page, ready_conditions):
         pass
 
 
-def render(
-        url: str,
-        ready_conditions: List[ReadyCondition] = None,
-        remove_elements: List[str] = None,
-        on_ready: OnPageReady = None,
-        add_base_url=None,
-        screen: str = None,
-        user_agent=None,
-        debug: bool = None,
-        user_agent_append: str = None,
-        device: str = None
-) -> str:
+def render(url: str,
+           ready_conditions: List[ReadyCondition] = None,
+           remove_elements: List[str] = None,
+           on_ready: OnPageReady = None,
+           add_base_url=None,
+           screen: str = None,
+           user_agent=None,
+           debug: bool = None,
+           user_agent_append: str = None,
+           device: str = None,
+           extra_headers: Dict[str, str] = None
+   ) -> str:
     with sync_playwright() as playwright:
         html, resolved_device = _render_internal(
             playwright,
@@ -259,7 +389,8 @@ def render(
             user_agent=user_agent,
             debug=debug,
             user_agent_append=user_agent_append,
-            device=device
+            device=device,
+            extra_headers=extra_headers
         )
         pass
 

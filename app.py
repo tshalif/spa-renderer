@@ -1,4 +1,4 @@
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Dict
 
 import uvicorn
 from fastapi import FastAPI, Header, Response
@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from page import ReadyCondition, render
 from util import config
+
 
 app = FastAPI()
 
@@ -66,6 +67,7 @@ def render_get(
 def render_post(
         url: str,
         checks: List[ReadinessChecks],
+        extra_headers: Dict[str, str] = None,
         screen: str = None,
         user_agent: str = None,
         user_agent_append: str = None,
@@ -85,7 +87,8 @@ def render_post(
         user_agent=user_agent,
         debug=debug,
         user_agent_append=user_agent_append,
-        device=device
+        device=device,
+        extra_headers=extra_headers
     )
 
     return RenderResponse(code=200, data=data).model_dump()
