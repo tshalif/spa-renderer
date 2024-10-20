@@ -82,7 +82,7 @@ gcloud-svc-$(APP_NAME):
 		--cpu=2 \
 		--memory=4Gi \
 		--max-instances=10 \
-		--set-env-vars=BROWSER_DISABLE_GPU=1,SERVICE_ACCESS_TOKENS=$$SERVICE_ACCESS_TOKENS \
+		--set-env-vars=STORE_PAGES=$$STORE_PAGES,S3_ENDPOINT=$$S3_ENDPOINT,S3_BUCKET_NAME=$$S3_BUCKET_NAME,S3_ACCESS_KEY=$$S3_ACCESS_KEY,READY_CONDITIONS=$$READY_CONDITIONS,REMOVE_ELEMENTS=$$REMOVE_ELEMENTS,S3_SECRET_KEY=$$S3_SECRET_KEY \
 		--execution-environment=gen2 \
 		--region=northamerica-northeast1 \
 		--project=$(GCLOUD_PROJECT)
