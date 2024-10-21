@@ -1,17 +1,125 @@
+##########################################
+# General variables
+##########################################
 version: '1.0.1'
+
+# HTTP headers to send with each request
 extra_http_headers:
   x-spa-renderer: '${version}'
 
-request_wait_url_pattern: ''
+default_timeout: 20000
+debug: no
+add_base_url: yes
+preload_pages: no
+max_tries: 2
 
-ready_conditions:
-  - ['body', ['[data-ready="true"]'], 'attached']
-  - ['body', ['[data-test="loading-image"]'], 'detached']
+####
 
-remove_elements:
-  - '[data-name="cookie-privacy-notice"]'
-  - '[data-test="loading-image"]'
+#########################################
+# network idleness check:
+#
+# If enabled (`network_idle_check: yes`),
+# SPA Renderer will wait for background
+# network 'idleness' before processing the
+# custom `ready_conditions`. It does so
+# by keeping a count of request and responses made
+# to URLs matching network_idle_requests_url_pattern
+# and will consider the page ready for scrapping
+# (but see also ready_conditions below) when the
+# number of pending such requests remain 0 for at
+# least network_idle_time milliseconds
+##########################################
 
+
+# Enable network idleness check
+network_idle_check: yes
+
+# Background request URLs to wait for
+network_idle_requests_url_pattern: '^@BASE_URL@(/|\?|$)'
+
+# Wait at least these many milliseconds for network idleness
+# once the pending request count drops to 0.
+# Immediately sleep that many milliseconds after page load
+# If `network_idle_check: no`
+network_idle_time: 5000
+
+# Exclude these request URLs from network idleness check
+# see: network_idle_requests_url_pattern
+network_idle_ignore_pattern: '.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css)(\?.*)?$'
+
+####
+
+#########################################
+# custom readiness conditions:
+#
+# Defines custom conditions to check if
+# the page is fully loaded and ready.
+#
+# Format:
+# - ['<trigger_selector>', ['<selector>'], '<condition>']
+#
+# trigger_selector: CSS/Xpath expression. The presence (as in 'attached')
+#   of this selector (note: this selector test is always for
+#   the 'attached' state, regardless of the value of `condition`)
+#   will determine either to evaluate the <selector> conditions. This way
+#   `ready_conditions` can hold multiple conditions some of
+#   which will only be relevant to a specific page, while
+#   others may be ignored.
+# selector: CSS/XPath element selectors which must match <condition>.
+# condition: "attached", "detached", "hidden", "visible"
+#
+# Example conditions:
+# - Ensures element with data attribute `data-ready="true"` is present.
+#   Since the trigger selector is 'body' (CSS), it will be evaluated on
+#   every page:
+#   - ['body', ['[data-ready="true"]'], 'attached']
+# - Ensures element with data attribute `data-test="loading-image"` is absent:
+#   - ['body', ['[data-test="loading-image"]'], 'detached']
+# - Wait for the category page product grid to show
+#   Since it is using trigger selector `.maincolumn-categorypage`
+#   its selectors will only be evaluated if we are on the category page
+#   (assuming only your category page has an element with class 'maincolumn-categorypage')
+#   - ['.maincolumn-categorypage', ['[data-test="product-item"]'], 'visible']
+##########################################
+ready_conditions: []
+#ready_conditions:
+#  - ['body', ['[data-ready="true"]'], 'attached']
+#  - ['body', ['[data-test="loading-image"]'], 'detached']
+#  - ['.maincolumn-categorypage', ['[data-test="product-item"]'], 'visible']
+
+####
+
+##########################################
+# elements to remove:
+#
+# Defines a list of CSS selectors for
+# elements that should be removed
+# before dumping the page DOM.
+#
+# Note: Javascript `<script>` tags are always removed by PWA Renderer
+#
+# Format:
+# - '<selector>'
+# selector: CSS selector of elements to remove.
+#   Note: unlike the selectors in `ready_conditions`, only CSS is supported here
+#
+# Example elements to remove:
+# - Cookie privacy notice:
+#   - '[data-name="cookie-privacy-notice"]'
+# - Amazon Chat widget:
+#   - '#amazon-connect-chat-widget'
+##########################################
+remove_elements: []
+#remove_elements:
+#  - '[data-name="cookie-privacy-notice"]'
+#  - '[data-test="loading-image"]'
+#  - '#amazon-connect-chat-widget'
+
+####
+
+##########################################
+# Device variables
+##########################################
 screen: 1280x1024
 
 screen_presets:
@@ -34,21 +142,29 @@ user_agent_screen_mapping:
     - mobile
     - mobile
 
-default_timeout: 20000
-network_idle_time: 5000
 user_agent: ''
 user_agent_append: ChefworksPrerender
 device: ''
-debug: no
-add_base_url: yes
-preload_pages: no
-max_tries: 2
 default_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3"
 
-#### DO S3 storage
-store_pages: no
-s3_endpoint: ''
-s3_bucket_name: ''
-s3_access_key: ''
-s3_secret_key: ''
+####
 
+##########################################
+# S3 storage configuration:
+#
+# Configuration settings for storing pages
+# in an Amazon S3 bucket.
+##########################################
+
+# enable page storage in S3.
+s3_store_pages: no
+# Custom S3 endpoint URL (if any)
+s3_endpoint: ''
+# Name of the S3 bucket
+s3_bucket_name: ''
+# Access key for S3 authentication.
+s3_secret_key: ''
+# Secret key for S3 authentication.
+s3_access_key: ''
+
+####

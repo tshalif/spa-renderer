@@ -145,7 +145,7 @@ def render(
         html = page.content()
         pass
 
-    if config.get('store_pages'):
+    if config.get('s3_store_pages'):
         store_page(html, url, resolved_device)
         pass
 
