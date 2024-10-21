@@ -49,7 +49,14 @@ class Config:
         pass
 
     def log_conf(self):
-        logger.info('config: %s' % self.config)
+        config = {}
+        for k in self.config.keys():
+            val = self.get(k)
+            if type(val) == str and 'secret' in k or '_key' in k or 'key_' in k:
+                val = 'xxxxxxxxx'
+                pass
+            config[k] = val
+        logger.info('config: %s' % config)
         pass
 
     def set(self, key: str, val):

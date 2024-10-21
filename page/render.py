@@ -101,6 +101,7 @@ def render(
         device: str = None,
         extra_headers: Dict[str, str] = None
 ) -> str:
+    config.log_conf()
 
     if debug is None:
         debug = config.get('debug')
