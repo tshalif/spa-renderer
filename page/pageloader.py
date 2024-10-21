@@ -11,18 +11,18 @@ logger = get_logger(__name__)
 
 
 class PageLoader:
-    network_idle_time = config.get('network_idle_time')
-    request_wait_url_pattern = config.get('network_idle_requests_url_pattern')
-    network_idle_ignore_pattern = config.get('network_idle_ignore_pattern')
-    network_idle_check = config.get('network_idle_check')
-    requests: List[str] = []
-
     def __init__(self, page: Page, url: str):
+        self.network_idle_time = config.get('network_idle_time')
+        self.network_idle_ignore_pattern = config.get('network_idle_ignore_pattern')
+        self.network_idle_check = config.get('network_idle_check')
+        self.requests: List[str] = []
         self.page = page
         self.url = url
         self.pending_requests = 0
         base_url_pattern = re.escape(self._base_url(url))
-        self.request_wait_url_pattern = self.request_wait_url_pattern.replace('@BASE_URL@', base_url_pattern)
+        self.request_wait_url_pattern = config.get(
+            'network_idle_requests_url_pattern'
+        ).replace('@BASE_URL@', base_url_pattern)
 
         if self.network_idle_check:
             self._attach_handlers(True)

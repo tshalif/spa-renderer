@@ -52,6 +52,14 @@ class Config:
         logger.info('config: %s' % self.config)
         pass
 
+    def set(self, key: str, val):
+        if key in self.config and type(self.config[key]) != type(val):
+            raise TypeError(
+                f'Cannot change type of config variable {key}'
+            )
+        self.config[key] = val
+        pass
+
     def get(self, key, def_val=DEFAULT_NOT_PROVIDED, depth=0):
         if depth == GET_MAX_DEPTH:
             raise RecursionError(

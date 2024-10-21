@@ -43,9 +43,14 @@ def render_get(
         screen: str = None,
         user_agent: Annotated[str | None, Header()] = None,
         user_agent_append: str = None,
-        debug: bool = None
+        debug: bool = None,
+        network_idle_check: bool = None
 ) -> Response:
     ready_conditions: List[ReadyCondition] = config.get('ready_conditions')
+
+    if network_idle_check is not None:
+        config.set('network_idle_check', network_idle_check)
+        pass
 
     remove_elements = config.get('remove_elements')
     data = render(
@@ -73,9 +78,14 @@ def render_post(
         debug: bool = None,
         remove_elements: List[str] = None,
         add_base_url: bool = None,
-        device: str = None
+        device: str = None,
+        network_idle_check: bool = None
 ):
     ready_conditions = [(k.when, k.selectors, k.state) for k in checks]
+
+    if network_idle_check is not None:
+        config.set('network_idle_check', network_idle_check)
+        pass
 
     data = render(
         url,
