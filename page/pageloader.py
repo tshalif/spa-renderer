@@ -59,7 +59,7 @@ class PageLoader:
 
     def _request_handler(self, request: Request, incr: int):
         if re.match(
-                r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css)$',
+                r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css)(\?.*)?$',
                 request.url
         ):
             return
@@ -67,10 +67,7 @@ class PageLoader:
         if request.method.lower() not in ['post', 'get', 'put']:
             return
 
-        if (
-                re.match(self.request_wait_url_pattern, request.url) or
-                re.match(r'.*\.(js|html|phtml)(\?|$)', request.url)
-        ):
+        if re.match(self.request_wait_url_pattern, request.url):
             self.pending_requests += incr
             match incr:
                 case 1:
