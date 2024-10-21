@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def _wait_conditions(page: Page, ready_conditions: List[ReadyCondition]):
-    remaining_conditions: List[Tuple[str, List[str]]] = []
+    remaining_conditions: List[ReadyCondition] = []
     condition_matched = False
     for selector, conditions, state in ready_conditions:
         if page.query_selector(selector):
@@ -32,7 +32,7 @@ def _wait_conditions(page: Page, ready_conditions: List[ReadyCondition]):
             logger.debug('wait_conditions: selector=%s: satisfied', selector)
             condition_matched = True
             continue
-        remaining_conditions.append((selector, conditions))
+        remaining_conditions.append((selector, conditions, state))
         pass
     return condition_matched, remaining_conditions
 
@@ -44,6 +44,10 @@ def wait_ready(page, ready_conditions: List[ReadyCondition]) -> Page:
             ready_conditions or []
         )
         if not condition_matched:  # no more conditions to match
+            logger.debug(
+                'wait_ready: conditions satisfied (not-triggered: %s)',
+                ready_conditions
+            )
             break
         pass
     return page
