@@ -1,12 +1,11 @@
 import base64
 import json
 import os
-import sys
 import re
+import sys
 from typing import Optional, Union
 
 import yaml
-from certifi import where
 
 from ..get_logger import get_logger
 
@@ -56,7 +55,7 @@ class Config:
     def get(self, key, def_val=DEFAULT_NOT_PROVIDED, depth=0):
         if depth == GET_MAX_DEPTH:
             raise RecursionError(
-                f'Recursion depth limit of {depth} reached for config variable "{key}"'
+                f'Recursion depth limit of {depth} reached for config variable "{key}"'  # noqa: E501
             )
 
         suffix = self.config.get('conf_suffix', '')
@@ -155,8 +154,13 @@ class Config:
 
     pass
 
-    def _subst_vars(self, retval: Union[int, str, dict, list, float, bool, None], depth: int):
+    def _subst_vars(
+            self,
+            retval: Union[int, str, dict, list, float, bool, None],
+            depth: int
+    ):
         t = type(retval)
+
         def subst_vars(m):
             return self.get(m.group(1), DEFAULT_NOT_PROVIDED, depth + 1)
 
@@ -173,4 +177,4 @@ class Config:
             for k in keys:
                 retval[k] = self._subst_vars(retval[k], depth)
         return retval
-pass
+    pass

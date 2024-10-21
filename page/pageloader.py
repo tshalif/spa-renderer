@@ -1,8 +1,10 @@
 import re
 from typing import List
-from playwright.sync_api import Page, Request
-from util import config
 from urllib.parse import urlparse
+
+from playwright.sync_api import Page, Request
+
+from util import config
 from util.get_logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,7 +19,7 @@ class PageLoader:
         self.pending_requests = 0
         base_url_pattern = re.escape(self._base_url(url))
         self.request_wait_url_pattern = (
-                config.get('request_wait_url_pattern') or r'^@BASE_URL@(/|\?|#$)'
+            config.get('request_wait_url_pattern') or r'^@BASE_URL@(/|\?|#$)'
         ).replace('@BASE_URL@', base_url_pattern)
 
         self._attach_handlers(True)
@@ -47,16 +49,19 @@ class PageLoader:
             pass
         pass
 
-    def  _handle_request(self, request: Request):
+    def _handle_request(self, request: Request):
         self._request_handler(request, 1)
         pass
 
-    def  _handle_response(self, request: Request):
+    def _handle_response(self, request: Request):
         self._request_handler(request, -1)
         pass
 
     def _request_handler(self, request: Request, incr: int):
-        if re.match(r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css|js)$', request.url):
+        if re.match(
+                r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css|js)$',
+                request.url
+        ):
             return
 
         if request.method.lower() not in ['post', 'get', 'put']:

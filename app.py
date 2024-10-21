@@ -1,4 +1,4 @@
-from typing import Annotated, List, Literal, Optional, Dict
+from typing import Annotated, Dict, List, Literal, Optional
 
 import uvicorn
 from fastapi import FastAPI, Header, Response
@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from page import ReadyCondition, render
 from util import config
-
 
 app = FastAPI()
 
