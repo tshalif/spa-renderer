@@ -13,7 +13,9 @@ logger = get_logger(__name__)
 class PageLoader:
     def __init__(self, page: Page, url: str):
         self.network_idle_time = config.get('network_idle_time')
-        self.network_idle_ignore_pattern = config.get('network_idle_ignore_pattern')
+        self.network_idle_ignore_pattern = config.get(
+            'network_idle_ignore_pattern'
+        )
         self.network_idle_check = config.get('network_idle_check')
         self.requests: List[str] = []
         self.page = page
@@ -120,7 +122,11 @@ class PageLoader:
             else:
                 quiet_time += 1000
             pass
-        logger.debug('wait_network_idle: %d/%d', quiet_time, self.network_idle_time)
+        logger.debug(
+            'wait_network_idle: %d/%d',
+            quiet_time,
+            self.network_idle_time
+        )
         pass
 
     @staticmethod

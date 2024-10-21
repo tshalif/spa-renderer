@@ -52,15 +52,17 @@ class Config:
         config = {}
         for k in self.config.keys():
             val = self.get(k)
-            if type(val) == str and 'secret' in k or '_key' in k or 'key_' in k:
-                val = 'xxxxxxxxx'
+            if type(val) is str:
+                if 'secret' in k or '_key' in k or 'key_' in k:
+                    val = 'xxxxxxxxx'
+                    pass
                 pass
             config[k] = val
         logger.info('config: %s' % config)
         pass
 
     def set(self, key: str, val):
-        if key in self.config and type(self.config[key]) != type(val):
+        if key in self.config and type(self.config[key]) is not type(val):
             raise TypeError(
                 f'Cannot change type of config variable {key}'
             )

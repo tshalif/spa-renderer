@@ -17,7 +17,7 @@ def _extract_host_and_path(url):
     return hostname, path + query_sep + query
 
 
-def store_page(html_data: str, url: str, device: str):
+def store_page(html_data: str, url: str, device: str) -> str:
     s3_endpoint = config.get('s3_endpoint')
     s3 = boto3.client(
         's3',
@@ -46,11 +46,12 @@ def store_page(html_data: str, url: str, device: str):
             ContentType='text/html',
             ACL='public-read'
         )
+        obj_path = object_name.replace(' ', '%20')
+        url = f'https://{bucket_name}.{s3_endpoint}/{obj_path}'
         logger.debug(
-            'store_page: DO CDN path: https://%s.%s/%s',
-            bucket_name,
-            s3_endpoint,
-            object_name.replace(' ', '%20')
+            'store_page: s3 object direct URL: %s',
+            url
         )
+        return url
     except Exception as e:
         logger.exception('store_page: error storing %s: %s', object_name, e)

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 
 from playwright.sync_api import Page, TimeoutError, sync_playwright
 
@@ -90,18 +90,19 @@ def add_base(add_base_url, page, url):
 
 def render(
         url: str,
-        ready_conditions: List[ReadyCondition] = None,
-        remove_elements: List[str] = None,
         on_ready: OnPageReady = None,
-        add_base_url=None,
         screen: str = None,
         user_agent=None,
-        debug: bool = None,
-        user_agent_append: str = None,
-        device: str = None,
-        extra_headers: Dict[str, str] = None
-) -> str:
+        device: str = None
+) -> Tuple[str, str]:
     config.log_conf()
+
+    ready_conditions: List[ReadyCondition] = config.get('ready_conditions')
+    remove_elements: List[str] = config.get('remove_elements')
+    add_base_url: bool = config.get('add_base_url')
+    debug: bool = config.get('debug')
+    user_agent_append: str = config.get('user_agent_append')
+    extra_headers: Dict[str, str] = config.get('extra_http_headers')
 
     if debug is None:
         debug = config.get('debug')
@@ -146,8 +147,9 @@ def render(
         html = page.content()
         pass
 
+    s3_url = ''
     if config.get('s3_store_pages'):
-        store_page(html, url, resolved_device)
+        s3_url = store_page(html, url, resolved_device)
         pass
 
-    return html
+    return html, s3_url

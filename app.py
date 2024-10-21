@@ -5,7 +5,7 @@ from fastapi import FastAPI, Header, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from page import ReadyCondition, render
+from page import render
 from util import config
 
 app = FastAPI()
@@ -28,6 +28,7 @@ class ReadinessChecks(BaseModel):
 
 class RenderResponse(BaseModel):
     code: int = Field(200, description="Status Code")
+    s3_url: Optional[str] = Field(None, description="S3 cache URL")
     message: Optional[str] = Field(None, description="Exception Information")
     data: Optional[str] = Field(
         None,
@@ -44,33 +45,35 @@ def render_get(
         user_agent: Annotated[str | None, Header()] = None,
         user_agent_append: str = None,
         debug: bool = None,
-        network_idle_check: bool = None
+        network_idle_check: bool = None,
+        s3_store_pages: bool = None
 ) -> Response:
-    ready_conditions: List[ReadyCondition] = config.get('ready_conditions')
 
     if network_idle_check is not None:
         config.set('network_idle_check', network_idle_check)
-        pass
+    if debug is not None:
+        config.set('debug', debug)
+    if add_base_url is not None:
+        config.set('add_base_url', add_base_url)
+    if user_agent_append is not None:
+        config.set('user_agent_append', user_agent_append)
+    if s3_store_pages is not None:
+        config.set('s3_store_pages', s3_store_pages)
 
-    remove_elements = config.get('remove_elements')
-    data = render(
+    data, _ = render(
         url,
-        ready_conditions=ready_conditions,
-        remove_elements=remove_elements,
-        add_base_url=add_base_url,
         screen=screen,
         user_agent=user_agent,
-        user_agent_append=user_agent_append,
-        device=device,
-        debug=debug
+        device=device
     )
+
     return HTMLResponse(data)
 
 
 @app.post('/render', response_model=RenderResponse)
 def render_post(
         url: str,
-        checks: List[ReadinessChecks],
+        checks: List[ReadinessChecks] = None,
         extra_headers: Dict[str, str] = None,
         screen: str = None,
         user_agent: str = None,
@@ -79,28 +82,35 @@ def render_post(
         remove_elements: List[str] = None,
         add_base_url: bool = None,
         device: str = None,
-        network_idle_check: bool = None
+        network_idle_check: bool = None,
+        s3_store_pages: bool = None
 ):
-    ready_conditions = [(k.when, k.selectors, k.state) for k in checks]
-
+    if checks is not None:
+        ready_conditions = [(k.when, k.selectors, k.state) for k in checks]
+        config.set('ready_conditions', ready_conditions)
     if network_idle_check is not None:
         config.set('network_idle_check', network_idle_check)
-        pass
+    if debug is not None:
+        config.set('debug', debug)
+    if add_base_url is not None:
+        config.set('add_base_url', add_base_url)
+    if user_agent_append is not None:
+        config.set('user_agent_append', user_agent_append)
+    if remove_elements is not None:
+        config.set('remove_elements', remove_elements)
+    if extra_headers is not None:
+        config.set('extra_http_headers', extra_headers)
+    if s3_store_pages is not None:
+        config.set('s3_store_pages', s3_store_pages)
 
-    data = render(
+    data, s3_url = render(
         url,
-        ready_conditions=ready_conditions,
-        remove_elements=remove_elements,
-        add_base_url=add_base_url,
         screen=screen,
         user_agent=user_agent,
-        debug=debug,
-        user_agent_append=user_agent_append,
         device=device,
-        extra_headers=extra_headers
     )
 
-    return RenderResponse(code=200, data=data).model_dump()
+    return RenderResponse(code=200, data=data, s3_url=s3_url).model_dump()
 
 
 if __name__ == "__main__":
