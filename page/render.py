@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Callable, Dict, List, Union
 
 from playwright.sync_api import Page, TimeoutError, sync_playwright
@@ -16,7 +17,7 @@ type OnPageReady = Callable[[Page], None]
 logger = get_logger(__name__)
 
 
-def render_page(add_base_url, context, ready_conditions, remove_elements, url):
+def render_page(context, ready_conditions, remove_elements, url):
     if config.get('preload_pages'):
         page = context.new_page()
         page.goto(url)
@@ -52,6 +53,20 @@ def render_page(add_base_url, context, ready_conditions, remove_elements, url):
             )
             pass
         pass
+    return page
+
+
+def add_meta(page: Page, name: str, content: str):
+    page.evaluate(f"""
+    let meta = document.createElement('meta');
+    meta.name = '{name}';
+    meta.content = '{content}';
+    document.head.insertBefore(meta, document.head.firstElementChild);
+    """)
+    pass
+
+
+def add_base(add_base_url, page, url):
     if add_base_url is None:
         add_base_url = config.get('add_base_url')
         pass
@@ -62,7 +77,6 @@ def render_page(add_base_url, context, ready_conditions, remove_elements, url):
             document.head.insertBefore(base, document.head.firstElementChild);
             """)  # noqa: E501
         pass
-    return page
 
 
 def render(
@@ -100,12 +114,19 @@ def render(
         )
 
         page = render_page(
-            add_base_url,
             context,
             ready_conditions,
             remove_elements,
             url
         )
+
+        add_meta(
+            page,
+            'x-spa-renderer-timestamp',
+            datetime.now(timezone.utc).isoformat()
+        )
+        add_meta(page, 'x-spa-renderer-device', resolved_device)
+        add_base(add_base_url, page, url)
 
         if on_ready:
             on_ready(page)
