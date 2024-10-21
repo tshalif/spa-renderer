@@ -19,7 +19,7 @@ class PageLoader:
         self.pending_requests = 0
         base_url_pattern = re.escape(self._base_url(url))
         self.request_wait_url_pattern = (
-            config.get('request_wait_url_pattern') or r'^@BASE_URL@(/|\?|#$)'
+            config.get('request_wait_url_pattern') or r'^@BASE_URL@(/|\?|#|$)'
         ).replace('@BASE_URL@', base_url_pattern)
 
         self._attach_handlers(True)
@@ -59,7 +59,7 @@ class PageLoader:
 
     def _request_handler(self, request: Request, incr: int):
         if re.match(
-                r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css|js)$',
+                r'.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|css)$',
                 request.url
         ):
             return
@@ -67,7 +67,10 @@ class PageLoader:
         if request.method.lower() not in ['post', 'get', 'put']:
             return
 
-        if re.match(self.request_wait_url_pattern, request.url):
+        if (
+                re.match(self.request_wait_url_pattern, request.url) or
+                re.match(r'.*\.(js|html|phtml)(\?|$)', request.url)
+        ):
             self.pending_requests += incr
             match incr:
                 case 1:
