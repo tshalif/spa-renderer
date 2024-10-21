@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List
 
 from playwright.sync_api import Page, TimeoutError, sync_playwright
 
@@ -17,20 +17,18 @@ type OnPageReady = Callable[[Page], None]
 logger = get_logger(__name__)
 
 
-def render_page(context, ready_conditions, remove_elements, url):
+def render_page(context, ready_conditions, url):
     if config.get('preload_pages'):
         page = context.new_page()
         page.goto(url)
         page.close()
         pass
-    page: Union[Page, None] = None
     max_tries = config.get('max_tries')
     for i in range(max_tries):
         try:
             page_loader = PageLoader(context.new_page(), url)
             page = page_loader.load()
-            wait_ready(page, ready_conditions)
-            break
+            return wait_ready(page, ready_conditions)
         except TimeoutError as e:
             if i < max_tries - 1:
                 logger.debug(
@@ -41,16 +39,27 @@ def render_page(context, ready_conditions, remove_elements, url):
                 continue
             raise e
         pass
-    assert page is not None
+    raise AssertionError('HDIGH: could not resolve page')
+
+
+def delete_elements(page: Page, sel: str):
     page.evaluate(
-        "document.querySelectorAll('script').forEach(s => s.remove())"
+        f"document.querySelectorAll('{sel}').forEach(s => s.remove())"
     )
+    pass
+
+
+def clean_page(page, remove_elements):
+
+    delete_elements(  # remove javascript `script` tags
+        page,
+        'script:not([type]),script[type="text/javascript"],script[type="module"]'  # noqa: E501
+    )
+
     if remove_elements:
         for selector in remove_elements:
             logger.debug('render: removing elements: %s', selector)
-            page.evaluate(
-                f"document.querySelectorAll('{selector}').forEach(s => s.remove())"  # noqa: E501
-            )
+            delete_elements(page, selector)
             pass
         pass
     return page
@@ -116,9 +125,10 @@ def render(
         page = render_page(
             context,
             ready_conditions,
-            remove_elements,
             url
         )
+
+        clean_page(page, remove_elements)
 
         add_meta(
             page,

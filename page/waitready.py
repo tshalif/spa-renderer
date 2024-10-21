@@ -37,12 +37,13 @@ def _wait_conditions(page: Page, ready_conditions: List[ReadyCondition]):
     return condition_matched, remaining_conditions
 
 
-def wait_ready(page, ready_conditions: List[ReadyCondition]):
+def wait_ready(page, ready_conditions: List[ReadyCondition]) -> Page:
     while True:
         condition_matched, ready_conditions = _wait_conditions(
             page,
             ready_conditions or []
         )
-        if not condition_matched:
+        if not condition_matched:  # no more conditions to match
             break
         pass
+    return page
