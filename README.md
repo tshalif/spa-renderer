@@ -6,8 +6,8 @@ Variables can either be set directly in [config.yaml](config.yaml), or else, via
 environment variables - e.g. `.env` and (for sensitive values) `.env.local` or
 via docker's `-e a=b` flags.
 > Note: when overriding a config variable from environment, the key must
-> be in upper case: e.g. `S3_STORAGE_ENABLE=1`. Complex valuse (e.g. `dict` or `list` types)
-> can be specified as jason and be base64 encoded. Example:
+> be in upper case: e.g. `S3_STORAGE_ENABLE=1`. Complex values (e.g. `dict` or `list` types)
+> can be specified as JSON and be base64 encoded. Example:
 > ```bash
 > base64 -w0 <<EOF
 > [
