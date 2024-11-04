@@ -29,7 +29,7 @@ def store_page(html_data: str, url: str, device: str) -> str:
 
     bucket_name = config.get('s3_bucket_name')
     hostname, path = _extract_host_and_path(url)
-    object_name = hostname + '/' + device + path
+    object_name = hostname + '/' + device.replace(' ', '').lower() + path
 
     logger.debug(
         'store_page: storing %s in %s, bucket %s',
