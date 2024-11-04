@@ -29,6 +29,9 @@ def store_page(html_data: str, url: str, device: str) -> str:
 
     bucket_name = config.get('s3_bucket_name')
     hostname, path = _extract_host_and_path(url)
+    if path and path[-1] == '/':
+        path = path[0:-1]  # strip trailing '/' from S3 storage key
+    pass
     object_name = hostname + '/' + device.replace(' ', '').lower() + path
 
     logger.debug(
