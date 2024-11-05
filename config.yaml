@@ -166,5 +166,6 @@ s3_bucket_name: ''
 s3_secret_key: ''
 # Secret key for S3 authentication.
 s3_access_key: ''
-
+# return page from S3 cache - if already exist
+s3_return_cached_pages: yes
 ####

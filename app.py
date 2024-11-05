@@ -46,7 +46,8 @@ def render_get(
         user_agent_append: str = None,
         debug: bool = None,
         network_idle_check: bool = None,
-        s3_store_pages: bool = None
+        s3_store_pages: bool = None,
+        use_cached_pages: bool = None
 ) -> Response:
 
     if network_idle_check is not None:
@@ -59,6 +60,9 @@ def render_get(
         config.set('user_agent_append', user_agent_append)
     if s3_store_pages is not None:
         config.set('s3_store_pages', s3_store_pages)
+    if use_cached_pages is not None:
+        config.set('s3_return_cached_pages', use_cached_pages)
+        pass
 
     data, _ = render(
         url,
@@ -83,7 +87,8 @@ def render_post(
         add_base_url: bool = None,
         device: str = None,
         network_idle_check: bool = None,
-        s3_store_pages: bool = None
+        s3_store_pages: bool = None,
+        use_cached_pages: bool = None
 ):
     if checks is not None:
         ready_conditions = [(k.when, k.selectors, k.state) for k in checks]
@@ -102,6 +107,11 @@ def render_post(
         config.set('extra_http_headers', extra_headers)
     if s3_store_pages is not None:
         config.set('s3_store_pages', s3_store_pages)
+    if use_cached_pages is not None:
+        config.set('s3_return_cached_pages', use_cached_pages)
+    else:
+        config.set('s3_return_cached_pages', False)
+        pass
 
     data, s3_url = render(
         url,

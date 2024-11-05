@@ -6,7 +6,7 @@ from playwright.sync_api import Page, TimeoutError, sync_playwright
 from util import config
 from util.get_logger import get_logger
 
-from .cache import store_page
+from .cache import get_page, store_page
 from .context import get_browser_context
 from .pageloader import PageLoader
 from .waitready import ReadyCondition, wait_ready
@@ -124,32 +124,47 @@ def render(
             extra_headers=extra_headers
         )
 
-        page = render_page(
-            context,
-            ready_conditions,
-            url
-        )
+        err = None
+        try:
+            if config.get(
+                    's3_store_pages'
+            ) and config.get(
+                's3_return_cached_pages'
+            ):
+                html, s3_url = get_page(resolved_device, url)
+                if html:
+                    return html, s3_url
+                pass
 
-        clean_page(page, remove_elements)
+            page = render_page(
+                context,
+                ready_conditions,
+                url
+            )
 
-        add_meta(
-            page,
-            'x-spa-renderer-timestamp',
-            datetime.now(timezone.utc).isoformat()
-        )
-        add_meta(page, 'x-spa-renderer-device', resolved_device)
-        add_base(add_base_url, page, url)
+            clean_page(page, remove_elements)
 
-        if on_ready:
-            on_ready(page)
+            add_meta(
+                page,
+                'x-spa-renderer-timestamp',
+                datetime.now(timezone.utc).isoformat()
+            )
+            add_meta(page, 'x-spa-renderer-device', resolved_device)
+            add_base(add_base_url, page, url)
+
+            s3_url = ''
+            html = page.content()
+            if config.get('s3_store_pages'):
+                s3_url = store_page(html, url, resolved_device)
+                pass
+            return html, s3_url
+
+        except Exception as e:
+            err = e
+            logger.exception('render: error while rendering %s: %s', url, e)
+            raise e
+        finally:
+            if on_ready and not err:
+                on_ready(page)
+                pass
             pass
-
-        html = page.content()
-        pass
-
-    s3_url = ''
-    if config.get('s3_store_pages'):
-        s3_url = store_page(html, url, resolved_device)
-        pass
-
-    return html, s3_url
