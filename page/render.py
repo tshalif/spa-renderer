@@ -94,7 +94,7 @@ def render(
         screen: str = None,
         user_agent=None,
         device: str = None
-) -> Tuple[str, str]:
+) -> Tuple[str, bool, str]:
     config.log_conf()
 
     ready_conditions: List[ReadyCondition] = config.get('ready_conditions')
@@ -133,7 +133,7 @@ def render(
             ):
                 html, s3_url = get_page(resolved_device, url)
                 if html:
-                    return html, s3_url
+                    return html, True, s3_url
                 pass
 
             page = render_page(
@@ -157,7 +157,7 @@ def render(
             if config.get('s3_store_pages'):
                 s3_url = store_page(html, url, resolved_device)
                 pass
-            return html, s3_url
+            return html, False, s3_url
 
         except Exception as e:
             err = e

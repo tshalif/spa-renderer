@@ -30,6 +30,8 @@ class RenderResponse(BaseModel):
     code: int = Field(200, description="Status Code")
     s3_url: Optional[str] = Field(None, description="S3 cache URL")
     message: Optional[str] = Field(None, description="Exception Information")
+    cache_hit: Optional[bool] = Field(None, description="Cache hit")
+    cache_url: Optional[str] = Field(None, description="Cache URL")
     data: Optional[str] = Field(
         None,
         description="Rendered SPA page (DOM dump)"
@@ -64,14 +66,22 @@ def render_get(
         config.set('s3_return_cached_pages', x_spa_renderer_return_cached)
         pass
 
-    data, _ = render(
+    data, cache_hit, _ = render(
         url,
         screen=screen,
         user_agent=user_agent,
         device=device
     )
 
-    return HTMLResponse(data)
+    return HTMLResponse(
+        content=data,
+        headers={
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'X-Spa-Renderer-Cache-Hit': str(cache_hit)
+        }
+    )
 
 
 @app.post('/render', response_model=RenderResponse)
@@ -113,14 +123,20 @@ def render_post(
         config.set('s3_return_cached_pages', False)
         pass
 
-    data, s3_url = render(
+    data, cache_hit, s3_url = render(
         url,
         screen=screen,
         user_agent=user_agent,
         device=device,
     )
 
-    return RenderResponse(code=200, data=data, s3_url=s3_url).model_dump()
+    return RenderResponse(
+        code=200,
+        data=data,
+        s3_url=s3_url,
+        cache_hit=cache_hit,
+        cache_url=s3_url
+    ).model_dump()
 
 
 if __name__ == "__main__":
