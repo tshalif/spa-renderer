@@ -47,7 +47,7 @@ def render_get(
         debug: bool = None,
         network_idle_check: bool = None,
         s3_store_pages: bool = None,
-        use_cached_pages: bool = None
+        x_spa_renderer_return_cached: Annotated[bool | None, Header()] = None,
 ) -> Response:
 
     if network_idle_check is not None:
@@ -60,8 +60,8 @@ def render_get(
         config.set('user_agent_append', user_agent_append)
     if s3_store_pages is not None:
         config.set('s3_store_pages', s3_store_pages)
-    if use_cached_pages is not None:
-        config.set('s3_return_cached_pages', use_cached_pages)
+    if x_spa_renderer_return_cached is not None:
+        config.set('s3_return_cached_pages', x_spa_renderer_return_cached)
         pass
 
     data, _ = render(
