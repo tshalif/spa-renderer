@@ -1,0 +1,81 @@
+map $http_user_agent $device {
+    "~*Mobile"       "nexus5x";
+    "~*iPhone"      "nexus5x";
+    "~*iPad"      "nexus5x";
+    "~*Nexus"      "nexus5x";
+    "~*Android"      "nexus5x";
+    default          "desktop";
+}
+
+map $device $resolved_user_agent {
+    "nexus5x" "${ENV_SUBST_UA_NEXUS5X}";
+    default "${ENV_SUBST_UA_DEFAULT}";
+}
+
+upstream s3 {
+    server ${ENV_SUBST_S3_CACHE_HOST}:443;
+}
+
+upstream spar {
+    server ${ENV_SUBST_SPA_RENDER_HOST}:443;
+}
+
+upstream try {
+    server 127.0.0.1:12345;            # Primary server
+    server 127.0.0.1:12346 backup;     # Fallback server (only used if primary fails)
+}
+
+server {
+    listen 12345;
+    server_name spa-cache;
+    location / {
+        rewrite ^ /$http_host/$device$request_uri;
+        rewrite ^(.*)/$ $1 break;
+        rewrite ^ $uri break;
+        proxy_pass https://s3;
+        proxy_set_header Host ${ENV_SUBST_S3_CACHE_HOST};
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header X-Spa-Renderer-S3-Cache Hit;
+    }
+}
+
+server {
+    listen 12346;
+    server_name spa-render;
+
+    location / {
+        rewrite ^ /noamp-${ENV_SUBST_INTERNAL_PATH_TOKEN}$request_uri;
+    }
+
+    location ^~ /spa-${ENV_SUBST_INTERNAL_PATH_TOKEN}/ {
+        internal;
+        rewrite ^/spa-${ENV_SUBST_INTERNAL_PATH_TOKEN}/(.*)$ /$1? break;
+        proxy_pass https://spar/render?url=https://$http_host$uri;
+        proxy_set_header Host ${ENV_SUBST_SPA_RENDER_HOST};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header User-Agent $resolved_user_agent;
+        add_header X-Spa-Renderer-Resolved-User-Agent $resolved_user_agent;
+        add_header X-Spa-Renderer-S3-Cache Miss;
+    }
+
+    location ^~ /noamp-${ENV_SUBST_INTERNAL_PATH_TOKEN}/ {
+        internal;
+        rewrite ^/noamp-${ENV_SUBST_INTERNAL_PATH_TOKEN}/(.*)&(.*)$ /noamp-${ENV_SUBST_INTERNAL_PATH_TOKEN}/$1%26$2? last;
+        rewrite ^/noamp-${ENV_SUBST_INTERNAL_PATH_TOKEN}/(.*)$ /spa-${ENV_SUBST_INTERNAL_PATH_TOKEN}/$1?;
+    }
+}
+
+server {
+    listen ${ENV_SUBST_LISTEN_PORT};
+    server_name _;
+
+    location / {
+        proxy_pass http://try;
+        proxy_next_upstream error timeout http_403 http_404;
+        include /etc/nginx/proxy_params;
+    }
+}
