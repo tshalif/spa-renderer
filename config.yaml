@@ -50,7 +50,10 @@ network_idle_ignore_pattern: '.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|c
 ####
 
 #########################################
-# custom readiness conditions:
+# Page readiness check
+#########################################
+
+# ready_conditions: custom readiness conditions
 #
 # Defines custom conditions to check if
 # the page is fully loaded and ready.
@@ -80,7 +83,6 @@ network_idle_ignore_pattern: '.*\.(png|jpg|jpeg|gif|ico|svg|eot|ttf|woff2?|otf|c
 #   its selectors will only be evaluated if we are on the category page
 #   (assuming only your category page has an element with class 'maincolumn-categorypage')
 #   - ['.maincolumn-categorypage', ['[data-test="product-item"]'], 'visible']
-##########################################
 ready_conditions: []
 #ready_conditions:
 #  - ['body', ['[data-ready="true"]'], 'attached']
@@ -90,7 +92,10 @@ ready_conditions: []
 ####
 
 ##########################################
-# elements to remove:
+# Post render cleanup
+##########################################
+
+# remove_elements: elements to remove from DOM
 #
 # Defines a list of CSS selectors for
 # elements that should be removed
@@ -168,4 +173,57 @@ s3_secret_key: ''
 s3_access_key: ''
 # return page from S3 cache - if already exist
 s3_return_cached_pages: yes
+
+#
+# cache_ignored_query_params: ignored query parameter regex matchers
+#
+# Request query parameters which fully match (i.e. anchors '^' and '$' will be appended to both ends of the matcher at evaluation time)
+# one of these will be stripped from the S3 object storage key
+#
+s3_ignore_query_params:
+  - fbclid
+  - gclid
+  - gclsrc
+  - utm_.*
+  - _ga
+  - mc_cid
+  - mc_eid
+  - _bta_tid
+  - _bta_c
+  - trk_.*
+  - gdfms
+  - gdftrk
+  - gdffi
+  - _ke
+  - sb_referer_host
+  - mkwid
+  - pcrid
+  - ef_id
+  - s_kwcid
+  - msclkid
+  - dm_i
+  - epik
+  - pk_.*
+  - piwik_.*
+  - mtm_.*
+  - matomo_.*
+  - hsa_.*
+  - _branch_match_id
+  - mkevt
+  - mkcid
+  - mkrid
+  - campid
+  - toolid
+  - customid
+  - igshid
+  - si
+  - sms_.*
+  - srsltid
+#
+# s3_ignore_query_params_extra: these will get appended to s3_ignore_query_params
+#
+# This variable is handy if we only want to add a few more ignored query params
+# rather then re-define all the items in s3_ignore_query_params
+#
+s3_ignore_query_params_extra: []
 ####

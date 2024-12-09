@@ -1,5 +1,6 @@
+import re
 from typing import Tuple, Union
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import boto3
 from botocore.client import BaseClient
@@ -10,11 +11,30 @@ from util import config, get_logger
 logger = get_logger(__name__)
 
 
+def _ignore_query_params(query) -> str:
+    parsed_query = parse_qs(query)
+    ignore_params = [
+        *config.get('s3_ignore_query_params'),
+        *config.get('s3_ignore_query_params_extra')
+    ]
+    keys = list(parsed_query.keys())
+    for i in ignore_params:
+        ignore_pattern = re.compile(f'^{i}$')
+        for k in keys:
+            if ignore_pattern.match(k):
+                del parsed_query[k]
+                break
+                pass
+            pass
+        pass
+    return urlencode(parsed_query, doseq=True)
+
+
 def _extract_host_and_path(url):
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname
     path = parsed_url.path
-    query = parsed_url.query
+    query = _ignore_query_params(parsed_url.query)
     query_sep = '?' if query else ''
     return hostname, path + query_sep + query
 
