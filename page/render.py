@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
 from playwright.sync_api import Page, TimeoutError, sync_playwright
 
@@ -125,9 +125,10 @@ def render(
         )
 
         err = None
+        page: Union[Page, None] = None
         try:
             if config.get(
-                    's3_store_pages'
+                's3_store_pages'
             ) and config.get(
                 's3_return_cached_pages'
             ):
@@ -144,6 +145,11 @@ def render(
 
             clean_page(page, remove_elements)
 
+            add_meta(
+                page,
+                'x-spa-renderer-ua',
+                page.evaluate('navigator.userAgent')
+            )
             add_meta(
                 page,
                 'x-spa-renderer-timestamp',
@@ -164,7 +170,7 @@ def render(
             logger.exception('render: error while rendering %s: %s', url, e)
             raise e
         finally:
-            if on_ready and not err:
+            if on_ready and page and not err:
                 on_ready(page)
                 pass
             pass

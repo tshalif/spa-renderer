@@ -66,11 +66,19 @@ def render_get(
         config.set('s3_return_cached_pages', x_spa_renderer_return_cached)
         pass
 
+    page_user_agent = ''
+
+    def on_ready(page):
+        nonlocal page_user_agent
+        page_user_agent = page.evaluate('navigator.userAgent')
+        pass
+
     data, cache_hit, _ = render(
         url,
         screen=screen,
         user_agent=user_agent,
-        device=device
+        device=device,
+        on_ready=on_ready
     )
 
     return HTMLResponse(
@@ -79,7 +87,8 @@ def render_get(
             'Content-Type': 'text/html',
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
-            'X-Spa-Renderer-Cache-Hit': str(cache_hit)
+            'X-Spa-Renderer-Cache-Hit': str(cache_hit),
+            'X-Spa-Renderer-User-Agent': page_user_agent
         }
     )
 
